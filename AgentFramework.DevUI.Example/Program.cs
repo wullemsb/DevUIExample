@@ -1,5 +1,8 @@
+using AgentFramework.DevUI.Example;
+using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.DevUI;
 using Microsoft.Agents.AI.Hosting;
+using Microsoft.Agents.AI.Workflows;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.AI;
 using OllamaSharp;
@@ -13,46 +16,39 @@ var builder = WebApplication.CreateBuilder(args);
 var endpoint = "http://localhost:11434";  // Default Ollama endpoint
 var modelName = "llama3.2";              // Model to use for AI responses
 using OllamaApiClient chatClient = new(new Uri(endpoint), modelName);
-builder.Services.AddChatClient(chatClient)
-    .UseOpenTelemetry(sourceName: "Chat Client", configure: cfg =>
-{
-    // Only enable sensitive data locally — exposes prompts/responses in traces
-    cfg.EnableSensitiveData = builder.Environment.IsDevelopment();
-});
+builder.Services.AddChatClient(chatClient);
 
-// ── 2. Register agents ──────────────────────────────────────────────
-// Define tool functions
-static string GetWeather(string city) => $"Weather in {city}: 18°C, partly cloudy."; // Replace with real API call
-static string GetForecast(string city, int days) => $"{days}-day forecast for {city}: mostly sunny with occasional showers.";
+// ── 2. Create agents for the workflow ───────────────────────────
 
-// Create tool descriptors
-var weatherTools = new[]
-{
-    AIFunctionFactory.Create(GetWeather, "get_weather", "Get the current weather for a city"),
-    AIFunctionFactory.Create(GetForecast, "get_forecast", "Get a multi-day weather forecast"),
-};
+var writerAgent = new ChatClientAgent(chatClient, name: "Writer", 
+    instructions: "You are a content writer. Write a clear, engaging paragraph on the topic provided. Be concise — 3-5 sentences.");
 
+var reviewerAgent = new ChatClientAgent(chatClient,name: "Reviewer",
+instructions: "You are a content editor. Give 2-3 bullet points of actionable feedback on the draft you receive. Be specific and concise.");
 
-// Register an agent with tools
-builder
-    .AddAIAgent(
-        "WeatherBot",
-        "You are a friendly weather assistant. Always ask the user for their city if they haven't provided it."
-    )
-    .WithAITools(weatherTools);
+// ── 3. Build the workflow graph ──────────────────────────────────
+
+var writer = new WriterExecutor(writerAgent);
+var reviewer = new ReviewerExecutor(reviewerAgent);
+var formatter = new FormatterExecutor();
+
+var workflow = new WorkflowBuilder(writer)// writer is the entry point
+    .WithName("ContentReviewWorkflow")
+    .AddEdge(writer, reviewer)
+    .AddEdge(reviewer, formatter)
+    .Build();
+
+// ── 4. Register the workflow with the hosting layer ──────────────
+
+// The workflow name shows up in the DevUI sidebar
+builder.AddWorkflow("ContentReviewWorkflow", (s,name)=> workflow).AddAsAIAgent(); //AddAsAIAgent makes the workflow available as an agent in the DevUI, allowing you to run it step-by-step and inspect inputs/outputs at each stage.
+
 
 // ── 3. Register OpenAI-compatible Responses + Conversations APIs ────
 
 // These are required by DevUI to intercept and display traffic.
 builder.Services.AddOpenAIResponses();
 builder.Services.AddOpenAIConversations();
-
-builder.Services.AddOpenTelemetry()
-    .ConfigureResource(r => r.AddService("DevUI.Example"))
-    .WithTracing(tracing => tracing
-        .AddSource("Chat Client")
-        .AddSource("Microsoft.Agents.AI")   // Agent Framework's own spans
-    );
 
 var app = builder.Build();
 

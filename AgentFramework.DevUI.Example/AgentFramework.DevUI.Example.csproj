@@ -9,6 +9,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Agents.AI.DevUI" Version="1.1.0-preview.260410.1" />
     <PackageReference Include="Microsoft.Agents.AI.Hosting" Version="1.1.0-preview.260410.1" />
+	  <PackageReference Include="Microsoft.Agents.AI.Workflows" Version="1.1.0" />
     <PackageReference Include="OllamaSharp" Version="5.4.25" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.15.2" />
     <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.1" />
