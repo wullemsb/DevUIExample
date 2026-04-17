@@ -10,7 +10,7 @@ namespace AgentFramework.DevUI.Example
         }
 
         [MessageHandler]
-        private async ValueTask HandleAsync(string feedback, IWorkflowContext context)
+        private async ValueTask<string> HandleAsync(string feedback, IWorkflowContext context)
         {
             var output = $"""
                 === Content Review Complete ===
@@ -22,7 +22,7 @@ namespace AgentFramework.DevUI.Example
 
                 """;
 
-            await context.YieldOutputAsync(output.Trim());
+            return output.Trim();
         }
     }
 

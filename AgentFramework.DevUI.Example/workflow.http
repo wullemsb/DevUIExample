@@ -1,0 +1,27 @@
+### Run Content Review Workflow
+POST http://localhost:5066/api/workflow/run
+Content-Type: application/json
+
+{
+  "Input": "Artificial Intelligence"
+}
+
+###
+
+### Run Content Review Workflow - Custom Topic
+POST http://localhost:5066/api/workflow/run
+Content-Type: application/json
+
+{
+  "Input": "The benefits of cloud computing"
+}
+
+###
+
+### Run Content Review Workflow - Another Example
+POST http://localhost:5066/api/workflow/run
+Content-Type: application/json
+
+{
+  "Input": "Sustainable energy solutions"
+}
